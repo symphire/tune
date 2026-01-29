@@ -1,7 +1,7 @@
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
-use client_side::domain::ConversationId;
-use client_side::infra::network::*;
+use tune::domain::ConversationId;
+use tune::infra::network::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

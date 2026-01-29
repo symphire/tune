@@ -5,9 +5,9 @@ use crossbeam_channel::{Receiver, Sender};
 use nanoid::nanoid;
 use tracing::{debug, info, info_span, trace};
 use tracing_subscriber::EnvFilter;
-use client_side::domain::{AppMessage, AppState, CaptchaId, ChatMessageInput, ConversationId, LoginInput, MessageId, SignupInput};
-use client_side::infra::network::{Network, RealNetwork, StreamMessage};
-use client_side::state::RealAppState;
+use tune::domain::{AppMessage, AppState, CaptchaId, ChatMessageInput, ConversationId, LoginInput, MessageId, SignupInput};
+use tune::infra::network::{Network, RealNetwork, StreamMessage};
+use tune::state::RealAppState;
 
 struct Client {
     pub username: String,
@@ -19,7 +19,7 @@ struct Client {
 
 fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::new("client_side=trace,app_state_demo=trace"))
+        .with_env_filter(EnvFilter::new("tune=trace,app_state_demo=trace"))
         .init();
 
     let alphabet: [char; 16] = [

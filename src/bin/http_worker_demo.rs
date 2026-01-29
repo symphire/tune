@@ -1,5 +1,5 @@
-use client_side::domain::{IdempotencyKey, PageSize};
-use client_side::infra::network::{HttpWorker, Identity, RealHttpWorker};
+use tune::domain::{IdempotencyKey, PageSize};
+use tune::infra::network::{HttpWorker, Identity, RealHttpWorker};
 use nanoid::nanoid;
 use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
@@ -7,7 +7,7 @@ use uuid::Uuid;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::new("client_side=trace,http_worker_demo=trace"))
+        .with_env_filter(EnvFilter::new("tune=trace,http_worker_demo=trace"))
         .init();
 
     let worker = RealHttpWorker::new();

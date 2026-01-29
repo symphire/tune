@@ -2,8 +2,8 @@ use once_cell::sync::Lazy;
 use crossbeam_channel::{Sender, Receiver};
 use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
-use client_side::domain::{ConversationId, MessageId};
-use client_side::infra::network::*;
+use tune::domain::{ConversationId, MessageId};
+use tune::infra::network::*;
 
 static SHUTDOWN_CHANNEL: Lazy<(Sender<()>, Receiver<()>)> = Lazy::new(|| crossbeam_channel::unbounded());
 
@@ -44,7 +44,7 @@ fn print_send(message_event: WithGeneration<MessageEvent>) {
 
 fn main() {
     // tracing_subscriber::fmt()
-    //     .with_env_filter(EnvFilter::new("client_side=trace,client_side::infra::network::worker=off"))
+    //     .with_env_filter(EnvFilter::new("tune=trace,tune::infra::network::worker=off"))
     //     .init();
 
     let mut network0 = RealNetwork::try_new().unwrap();
