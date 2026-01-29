@@ -1,6 +1,6 @@
-use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize)]
 pub struct IdempotencyKey(pub uuid::Uuid);
@@ -167,4 +167,36 @@ pub struct MessageError {
 #[derive(Debug)]
 pub enum MessageErrorKind {
     InternalError,
+}
+
+#[derive(Debug)]
+pub struct LoginSuccess;
+
+#[derive(Debug)]
+pub enum LoginError {
+    AuthenticationFailed,
+    ConnectionFailed,
+    SyncFailed,
+}
+
+#[derive(Debug, Clone)]
+pub struct SignupSuccess;
+
+#[derive(Debug, Clone)]
+pub enum SignupError {
+    Failed,
+}
+
+#[derive(Debug, Clone)]
+pub struct Connected;
+
+#[derive(Debug, Clone)]
+pub enum EstablishError {
+    InternalError,
+}
+
+#[derive(Debug)]
+pub enum HistoryMessage {
+    Concrete(MessageRecord),
+    Request(ChatMessageInput),
 }

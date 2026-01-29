@@ -1,20 +1,23 @@
+use crate::domain::{ConversationId, MessageId};
+use crate::infra::network::ws_api_v1::WS_CHAT_URL;
+use crate::infra::network::ws_api_v1::{
+    C2SCommand, ChatContent, ChatMessageSend, S2CEvent, SendMessage,
+};
+use crate::infra::network::WsWorker;
+use crate::port::network::WithGeneration;
+use futures_util::stream::{SplitSink, SplitStream};
+use futures_util::{SinkExt, StreamExt};
 use std::fs;
 use std::io::BufReader;
 use std::sync::Arc;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use futures_util::stream::{SplitSink, SplitStream};
-use tokio_tungstenite::{connect_async_tls_with_config, MaybeTlsStream, WebSocketStream};
 use tokio::net::TcpStream;
-use tokio_tungstenite::tungstenite::{http, Message};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::sync::watch;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
-use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::tungstenite::{http, Message};
+use tokio_tungstenite::{connect_async_tls_with_config, MaybeTlsStream, WebSocketStream};
 use tracing::{trace, warn};
-use crate::domain::{ConversationId, MessageId};
-use crate::infra::network::ws_api_v1::{ChatMessageSend, ChatContent, SendMessage, C2SCommand, S2CEvent};
-use crate::infra::network::ws_api_v1::WS_CHAT_URL;
-use crate::infra::network::{WithGeneration, WsWorker};
 
 pub struct RealWsWorker {
     pub generation: u64,
@@ -23,7 +26,11 @@ pub struct RealWsWorker {
 }
 
 impl RealWsWorker {
-    pub async fn try_new(generation: u64, access_token: String, from_receiver: UnboundedSender<WithGeneration<S2CEvent>>) -> anyhow::Result<Self> {
+    pub async fn try_new(
+        generation: u64,
+        access_token: String,
+        from_receiver: UnboundedSender<WithGeneration<S2CEvent>>,
+    ) -> anyhow::Result<Self> {
         // region Create connection
         let cert_file = &mut BufReader::new(fs::File::open("certs/dev_cert.pem")?);
         let certs = rustls_pemfile::certs(cert_file).collect::<Result<Vec<_>, _>>()?;
@@ -47,7 +54,8 @@ impl RealWsWorker {
             http::HeaderValue::from_str(format!("Bearer {}", access_token).clone().as_str())?,
         );
 
-        let (ws_stream, _) = connect_async_tls_with_config(request, None, false, Some(connector)).await?;
+        let (ws_stream, _) =
+            connect_async_tls_with_config(request, None, false, Some(connector)).await?;
         let (mut to_server, mut from_server) = ws_stream.split();
         // endregion
 
@@ -55,11 +63,20 @@ impl RealWsWorker {
         let (to_sender, from_app) = unbounded_channel();
         let (shutdown_tx, shutdown_rx) = watch::channel(false);
         let sender_handle = tokio::spawn(sender(from_app, to_server, shutdown_rx.clone()));
-        let receiver_handle = tokio::spawn(receiver(generation, from_server, from_receiver, shutdown_rx));
+        let receiver_handle = tokio::spawn(receiver(
+            generation,
+            from_server,
+            from_receiver,
+            shutdown_rx,
+        ));
         let watcher_handle = tokio::spawn(watcher(sender_handle, receiver_handle, shutdown_tx));
         // endregion
 
-        Ok(Self { generation, to_sender, watcher_handle })
+        Ok(Self {
+            generation,
+            to_sender,
+            watcher_handle,
+        })
     }
 }
 
@@ -116,7 +133,11 @@ async fn receiver(
     }
 }
 
-async fn watcher(sender_handle: JoinHandle<()>, receiver_handle: JoinHandle<()>, shutdown: watch::Sender<bool>) {
+async fn watcher(
+    sender_handle: JoinHandle<()>,
+    receiver_handle: JoinHandle<()>,
+    shutdown: watch::Sender<bool>,
+) {
     let _ = tokio::select! {
         result = sender_handle => {
             warn!("Sender task ended");
@@ -130,10 +151,14 @@ async fn watcher(sender_handle: JoinHandle<()>, receiver_handle: JoinHandle<()>,
 }
 // endregion
 
-
 #[async_trait::async_trait]
 impl WsWorker for RealWsWorker {
-    async fn send_message(&self, message_id: MessageId, conversation_id: ConversationId, content: String) -> anyhow::Result<()> {
+    async fn send_message(
+        &self,
+        message_id: MessageId,
+        conversation_id: ConversationId,
+        content: String,
+    ) -> anyhow::Result<()> {
         let message = C2SCommand::ChatMessageSend(ChatMessageSend {
             conversation_id,
             message_id,

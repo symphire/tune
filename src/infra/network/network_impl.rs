@@ -1,8 +1,12 @@
-use crate::domain::{AccessToken, ConversationId, FriendCursor, IdempotencyKey, MessageId, OffsetCursor, PageSize, UserId};
+use crate::domain::{
+    AccessToken, ConversationId, FriendCursor, IdempotencyKey, MessageId, OffsetCursor, PageSize,
+    UserId,
+};
 use crate::infra::network::http_worker_impl::RealHttpWorker;
 use crate::infra::network::ws_api_v1::*;
 use crate::infra::network::ws_worker_impl::RealWsWorker;
 use crate::infra::network::*;
+use crate::port::network::*;
 use dashmap::DashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -10,8 +14,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tokio::sync::{oneshot, Mutex, Notify};
 use tokio::sync::oneshot::error::RecvError;
+use tokio::sync::{oneshot, Mutex, Notify};
 use tokio::task::{AbortHandle, JoinHandle};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, debug_span, error, event, info, info_span, trace, warn, Instrument, Span};
@@ -478,11 +482,11 @@ impl Network for RealNetwork {
                         result: event,
                     }),
                     _ => error!("Unexpected network event: {:?}", event),
-                }
+                },
                 Err(error) => err_function(WithGeneration {
                     generation,
                     result: error,
-                })
+                }),
             }
         });
         let task = Box::pin(async move {
@@ -493,10 +497,10 @@ impl Network for RealNetwork {
                     error!("Failed to fetch conversation: {:#?}", e);
                     FetchConversationHistoryError::InternalError
                 });
-            
+
             NetworkEvent::FetchConversationHistory(FetchConversationHistoryEvent { result })
         });
-        
+
         Ok(self.create_task(task, Duration::from_millis(timeout), callback)?)
     }
 
@@ -645,21 +649,17 @@ impl Network for RealNetwork {
 
                 trace!("Waiting for notify");
                 let return_message = match rx.await {
-                    Ok(ack) => {
-                        NetworkEvent::ChatMessageSent(MessageEvent {
-                            result: Ok(ChatMessageSent {
-                                conversation_id: ack.conversation_id,
-                                message_id: ack.message_id,
-                                message_offset: ack.message_offset,
-                                created_at: ack.created_at,
-                            }),
-                        })
-                    }
-                    Err(_) => {
-                        NetworkEvent::ChatMessageSent(MessageEvent {
-                            result: Err(MessageError::FallbackError),
-                        })
-                    }
+                    Ok(ack) => NetworkEvent::ChatMessageSent(MessageEvent {
+                        result: Ok(ChatMessageSent {
+                            conversation_id: ack.conversation_id,
+                            message_id: ack.message_id,
+                            message_offset: ack.message_offset,
+                            created_at: ack.created_at,
+                        }),
+                    }),
+                    Err(_) => NetworkEvent::ChatMessageSent(MessageEvent {
+                        result: Err(MessageError::FallbackError),
+                    }),
                 };
 
                 in_flight.remove(&message_id);

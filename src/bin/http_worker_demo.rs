@@ -1,7 +1,8 @@
-use tune::domain::{IdempotencyKey, PageSize};
-use tune::infra::network::{HttpWorker, Identity, RealHttpWorker};
 use nanoid::nanoid;
 use tracing_subscriber::EnvFilter;
+use tune::domain::{IdempotencyKey, PageSize};
+use tune::infra::network::{HttpWorker, RealHttpWorker};
+use tune::port::network::Identity;
 use uuid::Uuid;
 
 #[tokio::main]
@@ -54,17 +55,21 @@ async fn main() {
         }
     }
 
-    let conv = worker.add_friend(
-        users[0].2.auth_tokens.access_token.clone(),
-        &users[1].0,
-        IdempotencyKey(uuid::Uuid::nil()),
-    ).await;
+    let conv = worker
+        .add_friend(
+            users[0].2.auth_tokens.access_token.clone(),
+            &users[1].0,
+            IdempotencyKey(uuid::Uuid::nil()),
+        )
+        .await;
     tracing::trace!("{:?}", conv);
 
-    let friends = worker.fetch_friend_list(
-        users[0].2.auth_tokens.access_token.clone(),
-        PageSize(20),
-        None,
-    ).await;
+    let friends = worker
+        .fetch_friend_list(
+            users[0].2.auth_tokens.access_token.clone(),
+            PageSize(20),
+            None,
+        )
+        .await;
     tracing::trace!("{:?}", friends);
 }

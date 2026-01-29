@@ -1,9 +1,13 @@
 use super::conversation_store::*;
 use crate::common::{AsyncValue, Generation, MaybeWithGen};
-use crate::domain::{ChatMessageInput, ChatMessageOk, ConversationId, HistoryMessage, MessageError, MessageId, MessageOffset, MessageRecord};
+use crate::domain::HistoryMessage;
+use crate::domain::{
+    ChatMessageInput, ChatMessageOk, ConversationId, MessageError, MessageId, MessageOffset,
+    MessageRecord,
+};
+use chrono::{DateTime, Utc};
 use std::collections::{BTreeMap, HashMap};
 use std::sync::atomic::AtomicU64;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug)]
 struct ChatMessageRequest {
@@ -61,7 +65,10 @@ impl ConversationStoreImpl {
                     oldest_local_message_offset: None,
                     fully_synced_to_oldest: false,
                     need_sync: false,
-                    sync_request_state: MaybeWithGen { generation: None, slot: AsyncValue::Idle },
+                    sync_request_state: MaybeWithGen {
+                        generation: None,
+                        slot: AsyncValue::Idle,
+                    },
                 },
                 messages: BTreeMap::new(),
                 requests: HashMap::new(),
@@ -179,7 +186,9 @@ impl ConversationStore for ConversationStoreImpl {
             sync_state.last_server_message_offset = Some(max_offset);
         }
         sync_state.fully_synced_to_oldest = is_fully_synced;
-        sync_state.version = self.version.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        sync_state.version = self
+            .version
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 
         for record in trunk {
             item.messages.insert(record.message_offset, record);
@@ -199,10 +208,16 @@ impl ConversationStore for ConversationStoreImpl {
             || sync_state.last_server_message_offset.is_none()
         {
             sync_state.last_server_message_offset = Some(message.message_offset);
-            sync_state.version = self.version.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            sync_state.version = self
+                .version
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             messages.insert(message.message_offset, message);
         } else {
-            tracing::debug!("drop push chat message: already exists [{:?}-{:?}]", message.conversation_id, message.message_offset);
+            tracing::debug!(
+                "drop push chat message: already exists [{:?}-{:?}]",
+                message.conversation_id,
+                message.message_offset
+            );
         }
 
         Ok(())
@@ -212,14 +227,23 @@ impl ConversationStore for ConversationStoreImpl {
         self.ensure_active(input.conversation_id);
         let item = self.registry.get_mut(&input.conversation_id).unwrap();
 
-        item.requests.insert(generation, ChatMessageRequest {
-            input,
-            state: AsyncValue::Pending,
-        });
-        item.sync_state.version = self.version.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        item.requests.insert(
+            generation,
+            ChatMessageRequest {
+                input,
+                state: AsyncValue::Pending,
+            },
+        );
+        item.sync_state.version = self
+            .version
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 
-    fn reconcile_message_result(&mut self, generation: Generation, result: Result<ChatMessageOk, MessageError>) {        
+    fn reconcile_message_result(
+        &mut self,
+        generation: Generation,
+        result: Result<ChatMessageOk, MessageError>,
+    ) {
         let conversation_id = match &result {
             Ok(o) => o.conversation_id,
             Err(e) => e.conversation_id,
@@ -246,16 +270,23 @@ impl ConversationStore for ConversationStoreImpl {
                     || sync_state.last_server_message_offset.is_none()
                 {
                     sync_state.last_server_message_offset = Some(message_ok.message_offset);
-                    messages.insert(message_ok.message_offset, MessageRecord {
-                        message_id: message_ok.message_id,
-                        conversation_id: message_ok.conversation_id,
-                        message_offset: message_ok.message_offset,
-                        sender: message_ok.me,
-                        content: request.input.content,
-                        created_at: message_ok.created_at,
-                    });
+                    messages.insert(
+                        message_ok.message_offset,
+                        MessageRecord {
+                            message_id: message_ok.message_id,
+                            conversation_id: message_ok.conversation_id,
+                            message_offset: message_ok.message_offset,
+                            sender: message_ok.me,
+                            content: request.input.content,
+                            created_at: message_ok.created_at,
+                        },
+                    );
                 } else {
-                    tracing::debug!("drop chat message ok: already exists [{:?}-{:?}]", message_ok.conversation_id, message_ok.message_offset);
+                    tracing::debug!(
+                        "drop chat message ok: already exists [{:?}-{:?}]",
+                        message_ok.conversation_id,
+                        message_ok.message_offset
+                    );
                 }
             }
             Err(error) => {
@@ -263,7 +294,9 @@ impl ConversationStore for ConversationStoreImpl {
                 request.state = AsyncValue::Ready(Err(anyhow::anyhow!("{:?}", error.kind)));
             }
         }
-        sync_state.version = self.version.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        sync_state.version = self
+            .version
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     }
 
     fn get_conversation_history(&self, conversation_id: ConversationId) -> Vec<HistoryMessage> {
@@ -291,7 +324,6 @@ impl ConversationStore for ConversationStoreImpl {
         sorted.sort_by(|(time_a, a), (time_b, b)| {
             match time_a.cmp(time_b) {
                 std::cmp::Ordering::Equal => match (a, b) {
-
                     // ---- History always placed before request if equal timestamp ----
                     (Sortable::Concrete(_), Sortable::Request(_)) => std::cmp::Ordering::Less,
                     (Sortable::Request(_), Sortable::Concrete(_)) => std::cmp::Ordering::Greater,
@@ -325,9 +357,7 @@ impl ConversationStore for ConversationStoreImpl {
     fn get_conversation_history_version(&self, conversation_id: ConversationId) -> u64 {
         match self.registry.get(&conversation_id) {
             None => 0,
-            Some(item) => {
-                item.sync_state.version
-            }
+            Some(item) => item.sync_state.version,
         }
     }
 }

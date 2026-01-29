@@ -1,9 +1,9 @@
-use crate::domain::DebugState;
 use crate::ui::{downcast, ViewContext, Window};
 use eframe::egui;
 use once_cell::sync::Lazy;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::app::DebugState;
 
 pub struct DebugWindow {
     debug_state: Rc<RefCell<dyn DebugState>>,

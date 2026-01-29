@@ -1,6 +1,9 @@
 use crate::common::*;
-use crate::domain::{AccessToken, CaptchaData, CaptchaError, ChatMessageInput, ChatMessageOk, ConversationId, EstablishError, FriendSummary, LoginError, LoginInput, MessageError, MessageRecord, SignupError, SignupInput, SignupSuccess};
-use crate::infra::network::{AddFriendError, ChatMetaData, FetchConversationHistoryError, FetchFriendListError, Identity, StreamMessage};
+use crate::domain::*;
+use crate::port::network::{
+    AddFriendError, ChatMetaData, FetchConversationHistoryError, FetchFriendListError, Identity,
+    StreamMessage,
+};
 
 #[derive(Debug)]
 pub enum AppMessage {
@@ -13,7 +16,12 @@ pub enum AppMessage {
     FriendListRequest,
     FriendListEvent(WithGen<Result<Vec<FriendSummary>, FetchFriendListError>>),
     OpenConversation(ConversationId),
-    ConversationHistory(WithGen<(ConversationId, Result<Vec<MessageRecord>, FetchConversationHistoryError>)>),
+    ConversationHistory(
+        WithGen<(
+            ConversationId,
+            Result<Vec<MessageRecord>, FetchConversationHistoryError>,
+        )>,
+    ),
     AddFriendRequest(String),
     AddFriendEvent(WithGen<Result<ConversationId, AddFriendError>>),
     EstablishConnectionRequest,

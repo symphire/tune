@@ -49,7 +49,11 @@ pub struct WithGenAndKey<T> {
 
 impl<T> WithGenAndKey<T> {
     pub fn new(generation: u64, key: SemanticKey, body: T) -> Self {
-        WithGenAndKey { generation, key, body }
+        WithGenAndKey {
+            generation,
+            key,
+            body,
+        }
     }
 }
 

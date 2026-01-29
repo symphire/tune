@@ -1,13 +1,14 @@
+use crate::app::{AppMessage, AppState};
+use crate::common::AsyncValue;
 use crate::domain::*;
+use crate::port::network::{AddFriendError, FetchFriendListError};
 use crate::ui::*;
+use chrono::Utc;
 use crossbeam_channel::Sender;
 use eframe::egui;
+use eframe::egui::TextBuffer;
 use std::cell::RefCell;
 use std::rc::Rc;
-use chrono::Utc;
-use eframe::egui::TextBuffer;
-use crate::common::AsyncValue;
-use crate::infra::network::{AddFriendError, FetchFriendListError};
 
 pub struct LobbyPage {
     // global
@@ -96,7 +97,9 @@ impl Page for LobbyPage {
                             }
                             AsyncValue::Idle | AsyncValue::Ready(Err(_)) => {
                                 if ui.button("Reconnect").clicked() {
-                                    let _ = self.message_tx.send(AppMessage::EstablishConnectionRequest);
+                                    let _ = self
+                                        .message_tx
+                                        .send(AppMessage::EstablishConnectionRequest);
                                 }
                             }
                             AsyncValue::Ready(Ok(_)) => {
@@ -107,7 +110,6 @@ impl Page for LobbyPage {
                         ui.label("Connected!");
                     }
                 });
-
 
                 ui.separator();
 
@@ -122,7 +124,9 @@ impl Page for LobbyPage {
                     }
                     _ => {
                         widget::button_input(ui, "Add", &mut self.new_friend_buf, |buffer| {
-                            let _ = self.message_tx.send(AppMessage::AddFriendRequest(buffer.take()));
+                            let _ = self
+                                .message_tx
+                                .send(AppMessage::AddFriendRequest(buffer.take()));
                         });
                     }
                 }
@@ -142,7 +146,9 @@ impl Page for LobbyPage {
                         } else {
                             for friend in friend_list {
                                 if ui.button(&friend.username).clicked() {
-                                    let _ = self.message_tx.send(AppMessage::OpenConversation(friend.conversation_id));
+                                    let _ = self
+                                        .message_tx
+                                        .send(AppMessage::OpenConversation(friend.conversation_id));
                                     self.current_chat = Some(Conversation {
                                         id: friend.conversation_id,
                                         name: friend.username.clone(),
@@ -192,7 +198,6 @@ impl Page for LobbyPage {
                 }
             });
 
-
         if let Some(conv) = &self.current_chat {
             egui::Window::new(&conv.name)
                 .open(&mut self.can_open_chat)
@@ -202,7 +207,9 @@ impl Page for LobbyPage {
                 .show(ctx, |ui| {
                     if matches!(conv.kind, ConversationKind::Group) {
                         widget::button_input(ui, "Invite", &mut self.invite_buf, |buffer| {
-                            let _ = self.message_tx.send(AppMessage::AddFriendRequest(buffer.take()));
+                            let _ = self
+                                .message_tx
+                                .send(AppMessage::AddFriendRequest(buffer.take()));
                         });
                         for i in 0..2 {
                             let name = format!("Friend {}", i);
@@ -220,10 +227,15 @@ impl Page for LobbyPage {
                             // for message in &self.chat_history {
                             //     ui.label(message);
                             // }
-                            for message in self.app_state.borrow().get_conversation_history(conv.id) {
+                            for message in self.app_state.borrow().get_conversation_history(conv.id)
+                            {
                                 match message {
-                                    HistoryMessage::Concrete(c) => {ui.label(c.content);}
-                                    HistoryMessage::Request(r) => {ui.label(format!("{}⏳",r.content));}
+                                    HistoryMessage::Concrete(c) => {
+                                        ui.label(c.content);
+                                    }
+                                    HistoryMessage::Request(r) => {
+                                        ui.label(format!("{}⏳", r.content));
+                                    }
                                 }
                             }
                         });
@@ -234,12 +246,14 @@ impl Page for LobbyPage {
                         let conversation_id = conv.id;
                         let message_id = MessageId(uuid::Uuid::new_v4());
                         let content = buffer.take();
-                        let _ = self.message_tx.send(AppMessage::ChatMessageRequest(ChatMessageInput {
-                            conversation_id,
-                            message_id,
-                            content,
-                            created_at: Utc::now(),
-                        }));
+                        let _ = self.message_tx.send(AppMessage::ChatMessageRequest(
+                            ChatMessageInput {
+                                conversation_id,
+                                message_id,
+                                content,
+                                created_at: Utc::now(),
+                            },
+                        ));
                     });
                 });
 

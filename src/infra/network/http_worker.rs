@@ -1,6 +1,9 @@
-use crate::infra::network::{CaptchaData, Identity};
+use crate::domain::{
+    AccessToken, ConversationId, FriendCursor, FriendSummary, IdempotencyKey, MessageRecord,
+    OffsetCursor, PageSize, UserId,
+};
+use crate::port::network::{CaptchaData, Identity};
 use uuid::Uuid;
-use crate::domain::{AccessToken, ConversationId, FriendCursor, FriendSummary, IdempotencyKey, MessageRecord, OffsetCursor, PageSize, UserId};
 
 #[async_trait::async_trait]
 pub trait HttpWorker: Send + Sync {
@@ -36,7 +39,7 @@ pub trait HttpWorker: Send + Sync {
         token: AccessToken,
         conversation_id: ConversationId,
         page_size: PageSize,
-        cursor: Option<OffsetCursor>
+        cursor: Option<OffsetCursor>,
     ) -> anyhow::Result<Vec<MessageRecord>>;
 
     fn clone_box(&self) -> Box<dyn HttpWorker>;

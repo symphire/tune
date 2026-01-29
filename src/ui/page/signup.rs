@@ -1,12 +1,13 @@
+use crate::app::{AppMessage, AppState};
+use crate::common::{AsyncValue, SemanticKey};
 use crate::domain::*;
+use crate::ui::widget::LabelInputKind;
 use crate::ui::*;
 use crossbeam_channel::Sender;
 use eframe::egui;
 use eframe::egui::{TextBuffer, TextureHandle};
 use std::cell::{OnceCell, RefCell};
 use std::rc::Rc;
-use crate::common::{AsyncValue, SemanticKey};
-use crate::ui::widget::LabelInputKind;
 
 pub struct SignupPage {
     // global
@@ -47,9 +48,7 @@ impl Page for SignupPage {
 
     fn drop_resource(&mut self) {
         let key = self.captcha_key.take().expect("captcha_key not set");
-        self.app_state
-            .borrow_mut()
-            .drop_captcha(key);
+        self.app_state.borrow_mut().drop_captcha(key);
         self.app_state.borrow_mut().drop_signup_state();
     }
 
@@ -69,8 +68,18 @@ impl Page for SignupPage {
             .resizable(false)
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
-                widget::label_input(ui, "Username:", &mut self.username_buf, LabelInputKind::Text);
-                widget::label_input(ui, "Password:", &mut self.password_buf, LabelInputKind::Password);
+                widget::label_input(
+                    ui,
+                    "Username:",
+                    &mut self.username_buf,
+                    LabelInputKind::Text,
+                );
+                widget::label_input(
+                    ui,
+                    "Password:",
+                    &mut self.password_buf,
+                    LabelInputKind::Password,
+                );
                 widget::label_input(ui, "Captcha:", &mut self.captcha_buf, LabelInputKind::Text);
 
                 widget::captcha_button(

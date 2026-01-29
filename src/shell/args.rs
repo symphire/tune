@@ -1,5 +1,5 @@
-use std::fmt::Display;
 use clap::{Parser, ValueEnum};
+use std::fmt::Display;
 
 #[derive(Clone, Debug, ValueEnum)]
 pub enum LogLevel {
@@ -25,5 +25,5 @@ impl Display for LogLevel {
 #[derive(Debug, Parser)]
 pub struct Args {
     #[arg(long, value_enum, default_value = "trace")]
-    pub log_level: LogLevel
+    pub log_level: LogLevel,
 }

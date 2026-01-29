@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use crate::domain::UserId;
 use crate::state::user_store::UserStore;
+use std::collections::HashMap;
 
 pub struct UserStoreImpl {
     store: HashMap<UserId, String>,

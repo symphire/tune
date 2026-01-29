@@ -1,7 +1,13 @@
+use crate::app::*;
 use crate::common::*;
 use crate::domain;
 use crate::domain::*;
-use crate::infra::network::{AddFriendError, AddFriendEvent, CaptchaEvent, ChatConnError, ChatMessageRecv, ChatMessageSent, ChatMetaData, FetchConversationHistoryError, FetchConversationHistoryEvent, FetchFriendListError, FetchFriendListEvent, Identity, LoginEvent, MessageEvent, Network, NetworkError, SessionEvent, SignupEvent, StreamMessage, WithGeneration};
+use crate::port::network::{
+    AddFriendError, AddFriendEvent, CaptchaEvent, ChatConnError, ChatMessageRecv, ChatMessageSent,
+    ChatMetaData, FetchConversationHistoryError, FetchConversationHistoryEvent,
+    FetchFriendListError, FetchFriendListEvent, Identity, LoginEvent, MessageEvent, Network,
+    NetworkError, SessionEvent, SignupEvent, StreamMessage, WithGeneration,
+};
 use crate::state::conversation_store::ConversationStore;
 use crate::state::conversation_store_impl::ConversationStoreImpl;
 use crate::state::key_provider::*;
@@ -273,7 +279,10 @@ impl RealAppState {
                 Err(_e) => {
                     let _ = message_tx_clone.send(AppMessage::ConversationHistory(WithGen::new(
                         Generation(generation),
-                        (conversation_id, Err(FetchConversationHistoryError::InternalError)),
+                        (
+                            conversation_id,
+                            Err(FetchConversationHistoryError::InternalError),
+                        ),
                     )));
                 }
             }
@@ -283,7 +292,10 @@ impl RealAppState {
             let generation = error.generation;
             let _ = message_tx_clone.send(AppMessage::ConversationHistory(WithGen::new(
                 Generation(generation),
-                (conversation_id, Err(FetchConversationHistoryError::InternalError)),
+                (
+                    conversation_id,
+                    Err(FetchConversationHistoryError::InternalError),
+                ),
             )));
         };
 
@@ -368,7 +380,10 @@ impl RealAppState {
         tagged.slot = AsyncValue::Pending;
     }
 
-    fn receive_friend_list_event(&mut self, event: WithGen<Result<Vec<FriendSummary>, FetchFriendListError>>) {
+    fn receive_friend_list_event(
+        &mut self,
+        event: WithGen<Result<Vec<FriendSummary>, FetchFriendListError>>,
+    ) {
         if self.friend_list_registry.is_none() {
             warn!("drop friend list: no available slot");
             return;
@@ -398,7 +413,10 @@ impl RealAppState {
                         .as_mut()
                         .unwrap()
                         .update_user(friend.user_id, &friend.username);
-                    self.conversation_store.as_mut().unwrap().reconcile_from_friend(friend.conversation_id, &friend.username);
+                    self.conversation_store
+                        .as_mut()
+                        .unwrap()
+                        .reconcile_from_friend(friend.conversation_id, &friend.username);
                 }
                 AsyncValue::Ready(Ok(friend_list))
             }
@@ -406,7 +424,13 @@ impl RealAppState {
         };
     }
 
-    fn receive_conv_history_event(&mut self, event: WithGen<(ConversationId, Result<Vec<MessageRecord>, FetchConversationHistoryError>)>) {
+    fn receive_conv_history_event(
+        &mut self,
+        event: WithGen<(
+            ConversationId,
+            Result<Vec<MessageRecord>, FetchConversationHistoryError>,
+        )>,
+    ) {
         let generation = event.generation;
         match event.body.1 {
             Ok(records) => {
@@ -435,16 +459,16 @@ impl RealAppState {
             let generation = event.generation;
             match event.result.result {
                 Ok(conversation_id) => {
-                    let _ = message_tx_clone.send(AppMessage::AddFriendEvent(
-                        WithGen::new(Generation(generation), Ok(conversation_id)),
-                    ));
+                    let _ = message_tx_clone.send(AppMessage::AddFriendEvent(WithGen::new(
+                        Generation(generation),
+                        Ok(conversation_id),
+                    )));
                 }
                 Err(_e) => {
-                    let _ =
-                        message_tx_clone.send(AppMessage::AddFriendEvent(WithGen::new(
-                            Generation(generation),
-                            Err(AddFriendError::InternalError),
-                        )));
+                    let _ = message_tx_clone.send(AppMessage::AddFriendEvent(WithGen::new(
+                        Generation(generation),
+                        Err(AddFriendError::InternalError),
+                    )));
                 }
             }
         };
@@ -526,9 +550,10 @@ impl RealAppState {
         let message_tx_clone = self.message_tx.clone();
         let map_err = move |error: WithGeneration<NetworkError>| {
             let generation = error.generation;
-            let _ = message_tx_clone.send(AppMessage::EstablishConnectionEvent(
-                WithGen::new(Generation(generation), Err(EstablishError::InternalError)),
-            ));
+            let _ = message_tx_clone.send(AppMessage::EstablishConnectionEvent(WithGen::new(
+                Generation(generation),
+                Err(EstablishError::InternalError),
+            )));
         };
 
         let message_tx_clone = self.message_tx.clone();
@@ -596,27 +621,25 @@ impl RealAppState {
             let generation = event.generation;
             match event.result.result {
                 Ok(ack) => {
-                    let _ =
-                        message_tx_clone.send(AppMessage::ChatMessageEvent(WithGen::new(
-                            Generation(generation),
-                            Ok(ChatMessageOk {
-                                me,
-                                conversation_id: ack.conversation_id,
-                                message_id: ack.message_id,
-                                message_offset: ack.message_offset,
-                                created_at: ack.created_at,
-                            }),
-                        )));
+                    let _ = message_tx_clone.send(AppMessage::ChatMessageEvent(WithGen::new(
+                        Generation(generation),
+                        Ok(ChatMessageOk {
+                            me,
+                            conversation_id: ack.conversation_id,
+                            message_id: ack.message_id,
+                            message_offset: ack.message_offset,
+                            created_at: ack.created_at,
+                        }),
+                    )));
                 }
                 Err(_e) => {
-                    let _ =
-                        message_tx_clone.send(AppMessage::ChatMessageEvent(WithGen::new(
-                            Generation(generation),
-                            Err(MessageError {
-                                conversation_id,
-                                kind: MessageErrorKind::InternalError,
-                            }),
-                        )));
+                    let _ = message_tx_clone.send(AppMessage::ChatMessageEvent(WithGen::new(
+                        Generation(generation),
+                        Err(MessageError {
+                            conversation_id,
+                            kind: MessageErrorKind::InternalError,
+                        }),
+                    )));
                 }
             }
         };

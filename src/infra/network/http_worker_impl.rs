@@ -1,9 +1,17 @@
+use crate::domain::{
+    AccessToken, ConversationId, FriendCursor, FriendSummary, IdempotencyKey, MessageRecord,
+    OffsetCursor, PageSize, UserId,
+};
+use crate::infra::network::http_api_v1::{
+    AddFriendRequest, ApiResponse, CaptchaResponse, ConversationHistoryQuery, FriendListQuery,
+    LoginRequest, LoginResponse, SignupRequest, SignupResponse, ADD_FRIEND_SUFFIX, API_BASE_URL,
+    CAPTCHA_SUFFIX, CONVERSATION_HISTORY_SUFFIX, FRIEND_LIST_SUFFIX, LOGIN_SUFFIX, SIGNUP_SUFFIX,
+};
+use crate::infra::network::HttpWorker;
+use crate::port::network::{CaptchaData, Identity};
+use reqwest::Client;
 use std::fs;
 use uuid::Uuid;
-use reqwest::Client;
-use crate::domain::{AccessToken, ConversationId, FriendCursor, FriendSummary, IdempotencyKey, MessageRecord, OffsetCursor, PageSize, UserId};
-use crate::infra::network::{CaptchaData, HttpWorker, Identity};
-use crate::infra::network::http_api_v1::{AddFriendRequest, ApiResponse, CaptchaResponse, ConversationHistoryQuery, FriendListQuery, LoginRequest, LoginResponse, SignupRequest, SignupResponse, ADD_FRIEND_SUFFIX, API_BASE_URL, CAPTCHA_SUFFIX, CONVERSATION_HISTORY_SUFFIX, FRIEND_LIST_SUFFIX, LOGIN_SUFFIX, SIGNUP_SUFFIX};
 
 fn endpoint_url(suffix: &str) -> String {
     format!(
@@ -67,7 +75,10 @@ impl HttpWorker for RealHttpWorker {
             .await?;
 
         let body_bytes = response.bytes().await?;
-        tracing::trace!("signup response body: {:?}", String::from_utf8_lossy(&body_bytes));
+        tracing::trace!(
+            "signup response body: {:?}",
+            String::from_utf8_lossy(&body_bytes)
+        );
 
         let response: ApiResponse<SignupResponse> = serde_json::from_slice(&body_bytes)?;
 
@@ -96,16 +107,20 @@ impl HttpWorker for RealHttpWorker {
             .await?;
 
         let body_bytes = response.bytes().await?;
-        tracing::trace!("login response body: {:?}", String::from_utf8_lossy(&body_bytes));
+        tracing::trace!(
+            "login response body: {:?}",
+            String::from_utf8_lossy(&body_bytes)
+        );
 
         let response: ApiResponse<LoginResponse> = serde_json::from_slice(&body_bytes)?;
 
-        let identity = response.data.map(|data| {
-            Identity {
+        let identity = response
+            .data
+            .map(|data| Identity {
                 user_id: data.user_id,
                 auth_tokens: data.auth_tokens,
-            }
-        }).ok_or(anyhow::anyhow!("failed to extract login data"))?;
+            })
+            .ok_or(anyhow::anyhow!("failed to extract login data"))?;
 
         Ok(identity)
     }
@@ -114,7 +129,7 @@ impl HttpWorker for RealHttpWorker {
         &self,
         token: AccessToken,
         page_size: PageSize,
-        cursor: Option<FriendCursor>
+        cursor: Option<FriendCursor>,
     ) -> anyhow::Result<Vec<FriendSummary>> {
         let cursor = match cursor {
             Some(cursor) => Some(cursor.to_string()),
@@ -134,10 +149,17 @@ impl HttpWorker for RealHttpWorker {
             .await?;
 
         let data = response.json::<ApiResponse<Vec<FriendSummary>>>().await?;
-        Ok(data.data.ok_or(anyhow::anyhow!("fetch_friend_list data parse error"))?)
+        Ok(data
+            .data
+            .ok_or(anyhow::anyhow!("fetch_friend_list data parse error"))?)
     }
 
-    async fn add_friend(&self, token: AccessToken, other: &str, key: IdempotencyKey) -> anyhow::Result<ConversationId> {
+    async fn add_friend(
+        &self,
+        token: AccessToken,
+        other: &str,
+        key: IdempotencyKey,
+    ) -> anyhow::Result<ConversationId> {
         let request = AddFriendRequest {
             other: other.to_owned(),
             key,
@@ -151,13 +173,24 @@ impl HttpWorker for RealHttpWorker {
             .send()
             .await?;
         let body_bytes = response.bytes().await?;
-        tracing::trace!("add_friend response body: {:?}", String::from_utf8_lossy(&body_bytes));
+        tracing::trace!(
+            "add_friend response body: {:?}",
+            String::from_utf8_lossy(&body_bytes)
+        );
 
         let response: ApiResponse<ConversationId> = serde_json::from_slice(&body_bytes)?;
-        Ok(response.data.ok_or(anyhow::anyhow!("add_friend data parse error"))?)
+        Ok(response
+            .data
+            .ok_or(anyhow::anyhow!("add_friend data parse error"))?)
     }
 
-    async fn fetch_conversation_history(&self, token: AccessToken, conversation_id: ConversationId, page_size: PageSize, cursor: Option<OffsetCursor>) -> anyhow::Result<Vec<MessageRecord>> {
+    async fn fetch_conversation_history(
+        &self,
+        token: AccessToken,
+        conversation_id: ConversationId,
+        page_size: PageSize,
+        cursor: Option<OffsetCursor>,
+    ) -> anyhow::Result<Vec<MessageRecord>> {
         let cursor = match cursor {
             Some(cursor) => Some(cursor.to_string()),
             None => None,
@@ -167,7 +200,7 @@ impl HttpWorker for RealHttpWorker {
             page_size,
             before: cursor,
         };
-        
+
         let response = self
             .client
             .get(endpoint_url(CONVERSATION_HISTORY_SUFFIX))
@@ -177,12 +210,16 @@ impl HttpWorker for RealHttpWorker {
             .await?;
 
         let body_bytes = response.bytes().await?;
-        tracing::trace!("conversation_history response: {:?}", String::from_utf8_lossy(&body_bytes));
+        tracing::trace!(
+            "conversation_history response: {:?}",
+            String::from_utf8_lossy(&body_bytes)
+        );
 
         let response: ApiResponse<Vec<MessageRecord>> = serde_json::from_slice(&body_bytes)?;
-        Ok(response.data.ok_or(anyhow::anyhow!("fetch_conversation_history data error"))?)
+        Ok(response
+            .data
+            .ok_or(anyhow::anyhow!("fetch_conversation_history data error"))?)
     }
-
 
     fn clone_box(&self) -> Box<dyn HttpWorker> {
         Box::new(self.clone())

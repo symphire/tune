@@ -1,7 +1,7 @@
-use std::cell::Ref;
+use super::message::AppMessage;
 use crate::common::*;
 use crate::domain::*;
-use crate::infra::network::{AddFriendError, ChatMetaData, FetchFriendListError, Identity};
+use crate::port::network::{AddFriendError, FetchFriendListError};
 
 pub trait AppState {
     fn prepare_captcha(&mut self) -> SemanticKey;
@@ -45,36 +45,3 @@ pub trait AppState {
 pub trait DebugState {
     fn set_captcha(&mut self, base64: &str);
 }
-
-#[derive(Debug)]
-pub struct LoginSuccess;
-
-#[derive(Debug)]
-pub enum LoginError {
-    AuthenticationFailed,
-    ConnectionFailed,
-    SyncFailed,
-}
-
-#[derive(Debug, Clone)]
-pub struct SignupSuccess;
-
-#[derive(Debug, Clone)]
-pub enum SignupError {
-    Failed,
-}
-
-#[derive(Debug, Clone)]
-pub struct Connected;
-
-#[derive(Debug, Clone)]
-pub enum EstablishError {
-    InternalError,
-}
-
-#[derive(Debug)]
-pub enum HistoryMessage {
-    Concrete(MessageRecord),
-    Request(ChatMessageInput),
-}
-

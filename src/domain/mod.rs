@@ -1,7 +1,3 @@
-mod value;
-mod state;
-mod message;
+mod model;
 
-pub use value::*;
-pub use state::*;
-pub use message::*;
+pub use model::*;

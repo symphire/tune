@@ -1,4 +1,4 @@
-use crate::domain::*;
+use crate::app::{AppMessage, AppState, DebugState};
 use crate::ui;
 use crate::ui::{DebugWindow, Window};
 use crossbeam_channel::{Receiver, Sender};
@@ -26,7 +26,7 @@ impl EframeShell {
     ) -> anyhow::Result<EframeShell> {
         let debug_window = match &debug_state {
             None => None,
-            Some(debug_state) => { Some(DebugWindow::new(debug_state.clone())) }
+            Some(debug_state) => Some(DebugWindow::new(debug_state.clone())),
         };
         let page_kind = ui::PageKind::Login;
         let page = Self::make_page(page_kind, state.clone(), message_tx.clone());

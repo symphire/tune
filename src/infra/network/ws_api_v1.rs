@@ -1,5 +1,5 @@
 use crate::domain::{ConversationId, MessageId, MessageOffset, UserId};
-use crate::infra::network::{
+use crate::port::network::{
     ChatMessage, ChatMessageRecv, ChatMessageSent, FriendshipRecv, StreamMessage,
 };
 use chrono::{DateTime, Utc};
@@ -57,13 +57,11 @@ impl From<S2CEvent> for ClientMessage {
                     username: e.username,
                 }))
             }
-            _ => {
-                ClientMessage::Stream(StreamMessage::Distribute(ChatMessage {
-                    sender: UserId(uuid::Uuid::nil()),
-                    conversation_id: ConversationId(uuid::Uuid::nil()),
-                    content: "placeholder content".to_owned(),
-                }))
-            }
+            _ => ClientMessage::Stream(StreamMessage::Distribute(ChatMessage {
+                sender: UserId(uuid::Uuid::nil()),
+                conversation_id: ConversationId(uuid::Uuid::nil()),
+                content: "placeholder content".to_owned(),
+            })),
         }
     }
 }

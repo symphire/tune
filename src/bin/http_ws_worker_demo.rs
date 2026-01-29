@@ -1,11 +1,10 @@
 use tokio::sync::mpsc::unbounded_channel;
-use uuid::Uuid;
 use tune::domain::ConversationId;
 use tune::infra::network::*;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-
     // let worker = RealHttpWorker::new();
     //
     // match worker.fetch_captcha().await {
@@ -24,17 +23,25 @@ async fn main() -> anyhow::Result<()> {
     // }
 
     let (tx0, mut rx0) = unbounded_channel();
-    let worker0 = RealWsWorker::try_new(0u64, "fake-access-token:testuser0".to_string(), tx0.clone()).await?;
+    let worker0 =
+        RealWsWorker::try_new(0u64, "fake-access-token:testuser0".to_string(), tx0.clone()).await?;
     let message0 = C2SCommand::Send(SendMessage {
         message_seq: 0,
-        content: ChatContent { conversation_id: ConversationId(Uuid::nil()), content: "Hello".to_string() },
+        content: ChatContent {
+            conversation_id: ConversationId(Uuid::nil()),
+            content: "Hello".to_string(),
+        },
     });
 
     let (tx1, mut rx1) = unbounded_channel();
-    let worker1 = RealWsWorker::try_new(0u64, "fake-access-token:testuser1".to_string(), tx1.clone()).await?;
+    let worker1 =
+        RealWsWorker::try_new(0u64, "fake-access-token:testuser1".to_string(), tx1.clone()).await?;
     let message1 = C2SCommand::Send(SendMessage {
         message_seq: 0,
-        content: ChatContent { conversation_id: ConversationId(Uuid::nil()), content: "Hi".to_string() },
+        content: ChatContent {
+            conversation_id: ConversationId(Uuid::nil()),
+            content: "Hi".to_string(),
+        },
     });
 
     let _ = worker0.to_sender.send(message0)?;

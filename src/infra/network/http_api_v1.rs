@@ -1,9 +1,9 @@
 use crate::domain;
+use crate::domain::{AuthTokens, ConversationId, IdempotencyKey, PageSize, UserId};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
-use crate::domain::{AuthTokens, ConversationId, IdempotencyKey, PageSize, UserId};
 
 pub const API_BASE_URL: &str = "https://127.0.0.1:8443/api/v1";
 pub const CAPTCHA_SUFFIX: &str = "captcha";
