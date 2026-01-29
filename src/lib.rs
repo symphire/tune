@@ -1,5 +1,4 @@
 pub mod shell;
-pub mod page;
 pub mod infra;
 pub mod domain;
 
