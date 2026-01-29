@@ -1,7 +1,7 @@
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
 use client_side::domain::ConversationId;
-use client_side::protocol::network::*;
+use client_side::infra::network::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -25,14 +25,14 @@ async fn main() -> anyhow::Result<()> {
 
     let (tx0, mut rx0) = unbounded_channel();
     let worker0 = RealWsWorker::try_new(0u64, "fake-access-token:testuser0".to_string(), tx0.clone()).await?;
-    let message0 = ClientToServer::Send(SendMessage {
+    let message0 = C2SCommand::Send(SendMessage {
         message_seq: 0,
         content: ChatContent { conversation_id: ConversationId(Uuid::nil()), content: "Hello".to_string() },
     });
 
     let (tx1, mut rx1) = unbounded_channel();
     let worker1 = RealWsWorker::try_new(0u64, "fake-access-token:testuser1".to_string(), tx1.clone()).await?;
-    let message1 = ClientToServer::Send(SendMessage {
+    let message1 = C2SCommand::Send(SendMessage {
         message_seq: 0,
         content: ChatContent { conversation_id: ConversationId(Uuid::nil()), content: "Hi".to_string() },
     });

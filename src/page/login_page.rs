@@ -38,7 +38,7 @@
 //! }
 //! ```
 
-use crate::page::{FakeNetwork, Network, NetworkEvent, Route, Update, View};
+use crate::page::{FakeNetwork, NetworkOld, NetworkEventOld, Route, Update, View};
 use crate::shell::AppMessage;
 use base64::Engine;
 use crossbeam_channel::Sender;
@@ -49,7 +49,7 @@ use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use tracing::{event, trace, warn};
 use uuid::Uuid;
-use crate::protocol::network::{CaptchaData, CaptchaError, CaptchaEvent, LoginError, LoginEvent, NetworkError, NetworkInterface, TokenInfo, WithGeneration};
+use crate::infra::network::{CaptchaData, CaptchaError, CaptchaEvent, LoginError, LoginEvent, NetworkError, Network, Identity, WithGeneration};
 
 pub enum LoginMessage {
     PlaceHolder,
@@ -75,8 +75,8 @@ pub struct LoginPage {
     message_tx: Sender<AppMessage>,
     map_function: Box<dyn Fn(LoginMessage) -> AppMessage>,
     new_map_function: Arc<Box<dyn Fn(LoginMessage) -> AppMessage + Send + Sync>>,
-    network: Weak<RefCell<dyn Network>>,
-    real_network: Rc<RefCell<dyn NetworkInterface>>,
+    network: Weak<RefCell<dyn NetworkOld>>,
+    real_network: Rc<RefCell<dyn Network>>,
     username: String,
     password: String,
 
@@ -95,8 +95,8 @@ impl LoginPage {
         message_tx: Sender<AppMessage>,
         map_function: Box<dyn Fn(LoginMessage) -> AppMessage>,
         new_map_function: Arc<Box<dyn Fn(LoginMessage) -> AppMessage + Send + Sync>>,
-        network: Weak<RefCell<dyn Network>>,
-        real_network: Rc<RefCell<dyn NetworkInterface>>,
+        network: Weak<RefCell<dyn NetworkOld>>,
+        real_network: Rc<RefCell<dyn Network>>,
     ) -> Self {
         let mut captcha_generation = None;
         // fetch_captcha(&mut captcha_generation, network.clone());
@@ -289,12 +289,12 @@ impl View for LoginPage {
     }
 }
 
-fn fetch_captcha(captcha_generation: &mut Option<u64>, network: Weak<RefCell<dyn Network>>) {
-    let map_function = |e: NetworkEvent| match e {
-        NetworkEvent::CaptchaFetched(generation, captcha) => {
+fn fetch_captcha(captcha_generation: &mut Option<u64>, network: Weak<RefCell<dyn NetworkOld>>) {
+    let map_function = |e: NetworkEventOld| match e {
+        NetworkEventOld::CaptchaFetched(generation, captcha) => {
             AppMessage::Login(LoginMessage::CaptchaFetched(generation, Uuid::nil(), captcha))
         }
-        NetworkEvent::CaptchaFailed(generation) => {
+        NetworkEventOld::CaptchaFailed(generation) => {
             AppMessage::Login(LoginMessage::CaptchaFailed(generation))
         }
         _ => AppMessage::Login(LoginMessage::PlaceHolder),
@@ -311,7 +311,7 @@ fn fetch_real_captcha(
     message_tx: Sender<AppMessage>,
     map_function: Arc<Box<dyn Fn(LoginMessage) -> AppMessage + Send + Sync>>,
     captcha_generation: &mut Option<u64>,
-    network: Rc<RefCell<dyn NetworkInterface>>,
+    network: Rc<RefCell<dyn Network>>,
 ) {
     let message_tx_clone = message_tx.clone();
     let map_function_clone = map_function.clone();
@@ -357,14 +357,14 @@ fn login(
     captcha_id: Uuid,
     captcha_answer: String,
     login_generation: &mut Option<u64>,
-    network: Rc<RefCell<dyn NetworkInterface>>,
+    network: Rc<RefCell<dyn Network>>,
 ) {
     let message_tx_clone = message_tx.clone();
     let map_function_clone = map_function.clone();
     let map = move |event: WithGeneration<LoginEvent>| {
         let generation = event.generation;
         let message = match event.result.result {
-            Ok(token) => LoginMessage::LoginSuccess(generation, "".to_string(), token.access_token),
+            Ok(identity) => LoginMessage::LoginSuccess(generation, "".to_string(), identity.auth_tokens.access_token.0),
             Err(_) => LoginMessage::LoginFailed(generation),
         };
         let _ = message_tx_clone.send(map_function_clone(message));

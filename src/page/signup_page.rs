@@ -4,7 +4,7 @@ use crossbeam_channel::Sender;
 use eframe::egui;
 use eframe::egui::Context;
 use tracing::trace;
-use crate::page::{Network, Route, View};
+use crate::page::{NetworkOld, Route, View};
 use crate::shell::AppMessage;
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ impl SignupPage {
     pub fn new(
         message_tx: Sender<AppMessage>,
         map_function: Box<dyn Fn(SignupMessage) -> AppMessage>,
-        _network: Weak<RefCell<dyn Network>>,
+        _network: Weak<RefCell<dyn NetworkOld>>,
     ) -> Self {
         Self {
             message_tx,

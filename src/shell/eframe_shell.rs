@@ -68,13 +68,13 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-use crate::page::{Network, FakeNetwork, Update, View, Route, LoginPage, SignupPage, NetworkEvent, LoginMessage, LobbyMessage};
+use crate::page::{NetworkOld, FakeNetwork, Update, View, Route, LoginPage, SignupPage, NetworkEventOld, LoginMessage, LobbyMessage};
 use crate::*;
 use anyhow::{anyhow, Result};
 use eframe::egui;
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, trace, warn};
-use crate::protocol::network::{ChatConnError, ChatMetaData, NetworkImpl, NetworkInterface, SessionEvent, StreamMessage, WithGeneration};
+use crate::infra::network::{ChatConnError, ChatMetaData, RealNetwork, Network, SessionEvent, StreamMessage, WithGeneration};
 
 const IDLE_POLLING_INTERVAL: Duration = Duration::from_millis(100);
 const FAST_POLLING_INTERVAL: Duration = Duration::from_millis(16);
@@ -96,8 +96,8 @@ pub enum Page {
 
 pub struct App {
     lifecycle: Lifecycle,
-    network: Rc<RefCell<dyn Network>>,
-    real_network: Rc<RefCell<dyn NetworkInterface>>,
+    network: Rc<RefCell<dyn NetworkOld>>,
+    real_network: Rc<RefCell<dyn Network>>,
     chat_generation: Option<u64>,
     stream_buffer: Vec<StreamMessage>,
     current_page: Page,
@@ -109,8 +109,8 @@ pub struct App {
 impl App {
     pub fn new() -> App {
         let (message_tx, message_rx) = crossbeam_channel::unbounded();
-        let network: Rc<RefCell<dyn Network>> = Rc::new(RefCell::new(FakeNetwork::new(message_tx.clone())));
-        let real_network = Rc::new(RefCell::new(NetworkImpl::try_new().unwrap()));
+        let network: Rc<RefCell<dyn NetworkOld>> = Rc::new(RefCell::new(FakeNetwork::new(message_tx.clone())));
+        let real_network = Rc::new(RefCell::new(RealNetwork::try_new().unwrap()));
         App {
             lifecycle: Lifecycle::Running,
             network: network.clone(),
@@ -340,7 +340,7 @@ impl App {
         App {
             lifecycle: Lifecycle::Running,
             network: Rc::new(RefCell::new(FakeNetwork::new(message_tx.clone()))),
-            real_network: Rc::new(RefCell::new(NetworkImpl::try_new().unwrap())),
+            real_network: Rc::new(RefCell::new(RealNetwork::try_new().unwrap())),
             chat_generation: None,
             stream_buffer: Vec::new(),
             current_page: Page::Fatal(page::FatalPage::new("fatal error".into())),

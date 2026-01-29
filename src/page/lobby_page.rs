@@ -3,13 +3,13 @@ use std::rc::{Rc, Weak};
 use std::string::ToString;
 use std::sync::Arc;
 use crossbeam_channel::Sender;
-use crate::page::{LoginMessage, Network, NetworkEvent, Route, Update, View};
+use crate::page::{LoginMessage, NetworkOld, NetworkEventOld, Route, Update, View};
 use eframe::egui;
 use eframe::egui::Context;
 use once_cell::sync::Lazy;
 use uuid::Uuid;
-use crate::domain::{ConversationId, UserId};
-use crate::protocol::network::{MessageError, MessageEvent, MessageSent, NetworkInterface, StreamMessage, WithGeneration};
+use crate::domain::{ConversationId, MessageId, UserId};
+use crate::infra::network::{MessageEvent, Network, StreamMessage, WithGeneration};
 use crate::shell::AppMessage;
 
 pub enum LobbyMessage {
@@ -25,8 +25,8 @@ pub struct LobbyPage {
     message_tx: Sender<AppMessage>,
     map_function: Box<dyn Fn(LobbyMessage) -> AppMessage>,
     new_map_function: Arc<Box<dyn Fn(LobbyMessage) -> AppMessage + Send + Sync>>,
-    network: Weak<RefCell<dyn Network>>,
-    real_network: Rc<RefCell<dyn NetworkInterface>>,
+    network: Weak<RefCell<dyn NetworkOld>>,
+    real_network: Rc<RefCell<dyn Network>>,
 
     chat_generation: Option<u64>,
     chat_history: Vec<String>,
@@ -40,8 +40,8 @@ impl LobbyPage {
         message_tx: Sender<AppMessage>,
         map_function: Box<dyn Fn(LobbyMessage) -> AppMessage>,
         new_map_function: Arc<Box<dyn Fn(LobbyMessage) -> AppMessage + Send + Sync>>,
-        network: Weak<RefCell<dyn Network>>,
-        real_network: Rc<RefCell<dyn NetworkInterface>>,
+        network: Weak<RefCell<dyn NetworkOld>>,
+        real_network: Rc<RefCell<dyn Network>>,
         chat_generation: u64,
     ) -> Self {
         Self {
@@ -78,8 +78,8 @@ impl Update<LobbyMessage> for LobbyPage {
                 self.chat_history.push(message);
             }
             LobbyMessage::Stream(message) => {
-                let message = match message { StreamMessage::Distribute(message) => message };
-                self.chat_history.push(message.content);
+                // let message = match message { StreamMessage::Distribute(message) => message };
+                // self.chat_history.push(message.content);
             }
             _ => {}
         }
@@ -143,6 +143,7 @@ impl View for LobbyPage {
 
                             let _ = self.real_network.borrow_mut().send_chat_message(
                                 conversation_id.clone(),
+                                MessageId(uuid::Uuid::new_v4()),
                                 self.input.trim().to_string(),
                                 1000,
                                 Box::new(map),

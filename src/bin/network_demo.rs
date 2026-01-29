@@ -2,8 +2,8 @@ use once_cell::sync::Lazy;
 use crossbeam_channel::{Sender, Receiver};
 use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
-use client_side::domain::ConversationId;
-use client_side::protocol::network::*;
+use client_side::domain::{ConversationId, MessageId};
+use client_side::infra::network::*;
 
 static SHUTDOWN_CHANNEL: Lazy<(Sender<()>, Receiver<()>)> = Lazy::new(|| crossbeam_channel::unbounded());
 
@@ -44,10 +44,10 @@ fn print_send(message_event: WithGeneration<MessageEvent>) {
 
 fn main() {
     // tracing_subscriber::fmt()
-    //     .with_env_filter(EnvFilter::new("client_side=trace,client_side::protocol::network::worker=off"))
+    //     .with_env_filter(EnvFilter::new("client_side=trace,client_side::infra::network::worker=off"))
     //     .init();
 
-    let mut network0 = NetworkImpl::try_new().unwrap();
+    let mut network0 = RealNetwork::try_new().unwrap();
     if let Err(e) = network0.cancel(0) {
         println!("{}", e);
     }
@@ -60,21 +60,21 @@ fn main() {
 
     let _ = network0.connect_chat("".to_string(), "fake-access-token:testuser0".to_string(), Box::new(print_stream), 1000, Box::new(print_session), Box::new(print_error));
 
-    let mut network1 = NetworkImpl::try_new().unwrap();
+    let mut network1 = RealNetwork::try_new().unwrap();
     let _ = network1.connect_chat("".to_string(), "fake-access-token:testuser1".to_string(), Box::new(print_stream), 1000, Box::new(print_session), Box::new(print_error));
 
-    let mut network2 = NetworkImpl::try_new().unwrap();
+    let mut network2 = RealNetwork::try_new().unwrap();
     let _ = network2.connect_chat("".to_string(), "fake-access-token:testuser2".to_string(), Box::new(print_stream), 1000, Box::new(print_session), Box::new(print_error));
 
     std::thread::sleep(std::time::Duration::from_millis(2000));
 
-    let _ = network0.send_chat_message(ConversationId(Uuid::nil()), "Hello".to_string(), 1000, Box::new(print_send), Box::new(print_error));
-    let _ = network1.send_chat_message(ConversationId(Uuid::nil()), "Hi".to_string(), 1000, Box::new(print_send), Box::new(print_error));
+    let _ = network0.send_chat_message(ConversationId(Uuid::nil()), MessageId(Uuid::nil()), "Hello".to_string(), 1000, Box::new(print_send), Box::new(print_error));
+    let _ = network1.send_chat_message(ConversationId(Uuid::nil()), MessageId(Uuid::nil()), "Hi".to_string(), 1000, Box::new(print_send), Box::new(print_error));
 
-    let _ = network0.send_chat_message(ConversationId(Uuid::nil()), "Hello".to_string(), 1000, Box::new(print_send), Box::new(print_error));
-    let _ = network1.send_chat_message(ConversationId(Uuid::nil()), "Hi".to_string(), 1000, Box::new(print_send), Box::new(print_error));
+    let _ = network0.send_chat_message(ConversationId(Uuid::nil()), MessageId(Uuid::nil()), "Hello".to_string(), 1000, Box::new(print_send), Box::new(print_error));
+    let _ = network1.send_chat_message(ConversationId(Uuid::nil()), MessageId(Uuid::nil()), "Hi".to_string(), 1000, Box::new(print_send), Box::new(print_error));
 
-    let _ = network2.send_chat_message(ConversationId(Uuid::nil()), "Hello from group".to_string(), 1000, Box::new(print_send), Box::new(print_error));
+    let _ = network2.send_chat_message(ConversationId(Uuid::nil()), MessageId(Uuid::nil()), "Hello from group".to_string(), 1000, Box::new(print_send), Box::new(print_error));
 
     // 3 REST + 3 Connection + 5 ACK + 6 Distribute
     for _i in 0..(3 + 3 + 5 + 6) {
